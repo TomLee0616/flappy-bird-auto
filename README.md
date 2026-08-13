@@ -2,6 +2,14 @@
 
 一款纯前端、零依赖的 Flappy Bird 网页小游戏,双击 `index.html` 即可在浏览器畅玩。
 
+<p align="center">
+  <img src="preview.png" alt="Flappy Bird 游戏截图" width="360">
+</p>
+
+## 在线体验
+
+👉 **https://tomlee0616.github.io/flappy-bird-auto/**
+
 ## 玩法
 
 - **操作**:鼠标点击 / 空格键 / 方向键↑ / W 键 / 触摸屏幕,让小鸟飞起来,穿过管道。
