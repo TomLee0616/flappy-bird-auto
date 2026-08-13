@@ -1,0 +1,153 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #1a1c2c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* 游戏容器:固定 400:600 比例,随视口缩放 */
+.game-wrapper {
+  position: relative;
+  aspect-ratio: 400 / 600;
+  width: min(100vw, calc(100vh * 400 / 600));
+  max-height: 100vh;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* 遮罩层 */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  touch-action: none;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.panel {
+  text-align: center;
+  color: #fff;
+  padding: 24px 28px;
+  background: rgba(20, 22, 34, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.title {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffd93b;
+}
+
+.hint {
+  margin: 14px 0 18px;
+  font-size: 14px;
+  color: #cbd0e0;
+  line-height: 1.6;
+}
+
+.btn {
+  background: #3ddc84;
+  color: #0b3d21;
+  border: none;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 12px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn:hover {
+  background: #2fbd72;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.over-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ff6b6b;
+}
+
+.score-line,
+.best-line {
+  font-size: 18px;
+  margin-top: 12px;
+}
+
+.score-line span {
+  font-weight: 700;
+  color: #ffd93b;
+}
+
+.best-line {
+  color: #cbd0e0;
+}
+
+.new-best {
+  color: #ffd93b;
+  font-weight: 700;
+  margin-top: 12px;
+}
+
+.new-best.hidden {
+  display: none;
+}
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.btn-secondary {
+  background: #5a6070;
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background: #4a4f5e;
+}
+
+.btn.active {
+  background: #ff9f43;
+  color: #4a2c00;
+}
+
+.btn.active:hover {
+  background: #e88f35;
+}
