@@ -13,25 +13,13 @@
     <!-- 炸弹按钮 -->
     <button id="btn-bomb" class="bomb-btn hidden"><span>💣</span><b id="bomb-count">0</b></button>
 
-    <!-- 强化学习训练面板 -->
-    <div id="rl-hud" class="rl-hud hidden">
-      <div class="rl-hud-row"><span>模式</span><b id="hud-mode">训练</b></div>
-      <div class="rl-hud-row"><span>局数</span><b id="hud-episode">0</b></div>
-      <div class="rl-hud-row"><span>本局</span><b id="hud-score">0</b></div>
-      <div class="rl-hud-row"><span>最高</span><b id="hud-best">0</b></div>
-      <div class="rl-hud-row"><span>探索 ε</span><b id="hud-eps">1.00</b></div>
-      <div class="rl-hud-row"><span>Q 表</span><b id="hud-qsize">0</b></div>
-    </div>
-
     <!-- 开始界面 -->
     <div id="overlay-start" class="overlay">
       <div class="panel">
         <h1 class="title">Flappy Bird</h1>
-        <p class="hint">点击 / 按空格 / 触摸屏幕 让小鸟飞起来<br>每过 6 个障碍随机获得超能力 · 炸弹按 B 释放<br>AI 训练:按 A · AI 测试:按 T</p>
+        <p class="hint">点击 / 按空格 / 触摸屏幕 让小鸟飞起来<br>每过 6 个障碍随机获得超能力 · 炸弹按 B 释放</p>
         <div class="btn-row">
           <button id="btn-start" class="btn">开始游戏</button>
-          <button id="btn-auto" class="btn btn-secondary">AI 训练</button>
-          <button id="btn-test" class="btn btn-secondary">AI 测试</button>
         </div>
       </div>
     </div>

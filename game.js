@@ -9,15 +9,6 @@
   const scoreFinal = document.getElementById('score-final');
   const scoreBest = document.getElementById('score-best');
   const newBestEl = document.getElementById('new-best');
-  const btnAuto = document.getElementById('btn-auto');
-  const btnTest = document.getElementById('btn-test');
-  const rlHud = document.getElementById('rl-hud');
-  const hudMode = document.getElementById('hud-mode');
-  const hudEpisode = document.getElementById('hud-episode');
-  const hudScore = document.getElementById('hud-score');
-  const hudBest = document.getElementById('hud-best');
-  const hudEps = document.getElementById('hud-eps');
-  const hudQsize = document.getElementById('hud-qsize');
 
   // ---- 逻辑分辨率 ----
   const W = 400;
@@ -39,20 +30,8 @@
   const DASH_DUR = 2 * 60;       // 超音速冲刺持续 2 秒(60fps 帧)
   const DASH_SPEED_MULT = 1.9;   // 冲刺时世界加速倍率
   const BOMB_PIPES = 3;          // 炸弹可炸掉的管道数量
-  const INVINCIBLE_AFTER = 60;   // 获得能力后无敌帧数(1 秒)
+  const INVINCIBLE_DUR = 60;     // 无敌时长(帧,1 秒):获得能力后 / 能力消失后
   const DASH_PIPE_ALPHA = 0.35;  // 冲刺时管道透明度
-
-  // ---- 强化学习(Q-learning)超参数,经数值模拟调优 ----
-  const RL_FLAP = -3.5;       // 学习用跳跃冲量(小冲量,便于精细控制)
-  const RL_ALPHA = 0.6;       // 学习率
-  const RL_GAMMA = 0.99;      // 折扣因子
-  const RL_EPS_START = 1.0;   // 初始探索率
-  const RL_EPS_MIN = 0.1;     // 最小探索率
-  const RL_EPS_DECAY = 0.998; // 每局探索率衰减
-  const RL_R_IN = 1.0;        // 缝隙内奖励
-  const RL_R_OUT = -0.05;     // 缝隙外奖励
-  const RL_R_DEATH = -10;     // 死亡奖励
-  const RL_SPEED = 60;        // 训练加速倍率(每渲染帧跑 60 个物理步)
 
   // ---- 管道常量 ----
   const PIPE_W = 68;
@@ -61,7 +40,7 @@
   const PIPE_SPACING = 250;   // 相邻管道间距
   const SPEED_BASE = 2.7;     // 初始移动速度
   const SPEED_MAX = 5.4;      // 最大移动速度
-  const PIPE_SMOOTH_RANGE = 40; // 相邻管道开口中心的最大突变(px),保证可玩且 AI 可追踪
+  const PIPE_SMOOTH_RANGE = 40; // 相邻管道开口中心的最大突变(px),保证可玩性
 
   // ---- 背景云 ----
   const CLOUDS = [
@@ -80,8 +59,6 @@
   let lastTime = 0;
   let cloudOffset = 0;
   let elapsed = 0;            // 累计帧时间,用于管道上下移动的相位
-  let autoMode = false;       // 强化学习接管(训练或测试)
-  let rlMode = 'train';       // 'train' 训练中学习 | 'test' 测试(纯贪心、不学习)
   let prevPipeCenter = null;  // 上一根管道的开口中心(用于平滑生成)
   let rafId = null;
 
@@ -92,8 +69,7 @@
   let bombCount = 0;         // 持有的炸弹数量
   let effects = [];          // 粒子特效(爆炸/尾迹)
   let toast = null;          // 能力提示 { text, color, time }
-  let invincibleTime = 0;    // 无敌剩余时间(帧,获得能力后)
-  let prePowerInvincible = false; // 即将获得能力(差 1 个障碍)时进入无敌
+  let invincibleTime = 0;    // 无敌剩余时间(帧)
 
   // ---- 音效(Web Audio API,无外部文件) ----
   let audioCtx = null;
@@ -197,7 +173,7 @@
     return Math.min(SPEED_BASE + score * 0.06, SPEED_MAX);
   }
   function currentMoveAmp() {
-    // 超过 20 分后管道上下摆动;幅度封顶 35,保证开口始终可穿越且 AI 可追踪
+    // 超过 20 分后管道上下摆动;幅度封顶 35,保证开口始终可穿越
     return score > 20 ? Math.min((score - 20) * 0.7, 35) : 0;
   }
 
@@ -246,11 +222,6 @@
     clearPowers();
     overlayStart.classList.add('hidden');
     overlayOver.classList.add('hidden');
-    if (autoMode) {
-      if (rlMode === 'train') RL.reset(); // 仅训练模式从头重置 Q 表;测试沿用已学到的 Q 表
-      RL.onEpisodeStart();
-      updateRLHud();
-    }
   }
 
   function gameOver() {
@@ -293,129 +264,8 @@
   }
 
   function flap() {
-    if (autoMode) return; // AI 接管时不响应手动跳跃
     bird.vy = FLAP;
     sfxFlap();
-  }
-
-  function updateAutoBtn() {
-    const trainOn = autoMode && rlMode === 'train';
-    const testOn = autoMode && rlMode === 'test';
-    btnAuto.textContent = trainOn ? 'AI 训练:开' : 'AI 训练';
-    btnAuto.classList.toggle('active', trainOn);
-    btnTest.textContent = testOn ? 'AI 测试:开' : 'AI 测试';
-    btnTest.classList.toggle('active', testOn);
-    rlHud.classList.toggle('hidden', !autoMode);
-    hudMode.textContent = rlMode === 'test' ? '测试' : '训练';
-  }
-
-  function enterRL(mode) {
-    autoMode = true;
-    rlMode = mode;
-    clearPowers();
-    updateAutoBtn();
-    if (state === 'playing') {
-      RL.onEpisodeStart();
-      updateRLHud();
-    }
-  }
-
-  function toggleTrain() {
-    if (autoMode && rlMode === 'train') autoMode = false;
-    else enterRL('train');
-    updateAutoBtn();
-  }
-
-  function toggleTest() {
-    if (autoMode && rlMode === 'test') autoMode = false;
-    else enterRL('test');
-    updateAutoBtn();
-  }
-
-  // ---- 强化学习(Q-learning)智能体 ----
-  // 状态: (距管道水平距离, 距开口中心竖直距离, 速度方向), 动作: {0 不跳, 1 跳}
-  const RL = {
-    Q: new Map(),
-    eps: RL_EPS_START,
-    episode: 0,
-    bestScore: 0,
-    curState: null,
-    curAction: 0,
-
-    nextPipe() {
-      for (const p of pipes) if (p.x + PIPE_W > BIRD_X - BIRD_R) return p;
-      return null;
-    },
-
-    stateOf(next) {
-      const dx = next.x + PIPE_W / 2 - BIRD_X;
-      const dxIdx = clamp(Math.round(dx / 20), 0, 20);
-      const dy = bird.y - next.center;
-      const dyIdx = clamp(Math.round(dy / 15), -22, 22);
-      const vy = bird.vy > 0 ? 1 : 0;
-      return (dxIdx * 45 + (dyIdx + 22)) * 2 + vy;
-    },
-
-    qget(s, a) { return this.Q.get(s * 2 + a) || 0; },
-    qset(s, a, v) { this.Q.set(s * 2 + a, v); },
-    maxQ(s) { const a0 = this.qget(s, 0), a1 = this.qget(s, 1); return a0 >= a1 ? a0 : a1; },
-
-    act(s) {
-      // 测试模式:纯贪心,不探索
-      if (rlMode === 'test') return this.qget(s, 0) >= this.qget(s, 1) ? 0 : 1;
-      if (Math.random() < this.eps) return Math.random() < 0.5 ? 0 : 1;
-      return this.qget(s, 0) >= this.qget(s, 1) ? 0 : 1;
-    },
-
-    reset() {
-      this.Q.clear();
-      this.eps = RL_EPS_START;
-      this.episode = 0;
-      this.bestScore = 0;
-    },
-
-    onEpisodeStart() {
-      const next = this.nextPipe();
-      this.curState = this.stateOf(next);
-      this.curAction = this.act(this.curState);
-    },
-
-    // 每帧结算: 依据当前状态计算奖励 → 更新 Q → 选择下一动作
-    step(died) {
-      const next = this.nextPipe();
-      const s2 = this.stateOf(next);
-      const half = next.gap / 2;
-      const inGap = bird.y >= next.center - half + 6 && bird.y <= next.center + half - 6;
-      let r;
-      if (died) r = RL_R_DEATH;
-      else if (inGap) r = RL_R_IN;
-      else r = RL_R_OUT;
-
-      // 训练模式才更新 Q 表与探索率;测试模式只做决策,不学习
-      if (rlMode === 'train' && this.curState !== null) {
-        const old = this.qget(this.curState, this.curAction);
-        const target = died ? r : r + RL_GAMMA * this.maxQ(s2);
-        this.qset(this.curState, this.curAction, old + RL_ALPHA * (target - old));
-      }
-
-      if (died) {
-        if (rlMode === 'train') {
-          this.episode++;
-          this.eps = Math.max(RL_EPS_MIN, this.eps * RL_EPS_DECAY);
-        }
-      } else {
-        this.curState = s2;
-        this.curAction = this.act(s2);
-      }
-    },
-  };
-
-  function updateRLHud() {
-    hudEpisode.textContent = RL.episode;
-    hudScore.textContent = score;
-    hudBest.textContent = RL.bestScore;
-    hudEps.textContent = rlMode === 'test' ? '贪心' : RL.eps.toFixed(2);
-    hudQsize.textContent = RL.Q.size / 2;
   }
 
   // ---- 碰撞检测(圆 vs 矩形) ----
@@ -447,7 +297,6 @@
     effects = [];
     toast = null;
     invincibleTime = 0;
-    prePowerInvincible = false;
     updateBombBtn();
   }
 
@@ -468,8 +317,7 @@
       updateBombBtn();
       showToast('超能力: 获得炸弹!', '#ff9f43');
     }
-    invincibleTime = INVINCIBLE_AFTER; // 获得能力后 1 秒无敌
-    prePowerInvincible = false;
+    invincibleTime = INVINCIBLE_DUR; // 获得能力后 1 秒无敌
     sfxPower();
   }
 
@@ -531,16 +379,17 @@
     elapsed += t;
 
     // 超能力计时(帧)
-    if (shrinkTime > 0) shrinkTime = Math.max(0, shrinkTime - t);
-    if (dashTime > 0) dashTime = Math.max(0, dashTime - t);
+    if (shrinkTime > 0) {
+      shrinkTime = Math.max(0, shrinkTime - t);
+      if (shrinkTime === 0) invincibleTime = INVINCIBLE_DUR; // 变小消失后 1 秒无敌
+    }
+    if (dashTime > 0) {
+      dashTime = Math.max(0, dashTime - t);
+      if (dashTime === 0) invincibleTime = INVINCIBLE_DUR; // 冲刺消失后 1 秒无敌
+    }
     if (invincibleTime > 0) invincibleTime = Math.max(0, invincibleTime - t);
 
     const birdR = currentBirdR();
-
-    // RL: 应用上一步选择的动作(小冲量起跳)
-    if (autoMode && RL.curAction === 1) {
-      bird.vy = RL_FLAP;
-    }
 
     // 小鸟物理
     bird.vy = Math.min(bird.vy + GRAVITY * t, MAX_FALL);
@@ -586,25 +435,22 @@
       pipes.push(makePipe(last.x + PIPE_SPACING));
     }
 
-    // 得分 + 跨障碍计数(每 6 个触发超能力,仅手动模式)
+    // 得分 + 跨障碍计数(每 6 个触发超能力)
     for (const p of pipes) {
       if (!p.scored && !p.destroyed && p.x + PIPE_W < bird.x) {
         p.scored = true;
         score++;
-        if (!autoMode) {
-          sfxScore();
-          pipesSincePower++;
-          if (pipesSincePower === POWER_EVERY - 1) prePowerInvincible = true; // 差 1 个障碍获得能力,提前进入无敌
-          if (pipesSincePower >= POWER_EVERY) {
-            pipesSincePower = 0;
-            grantPower();
-          }
+        sfxScore();
+        pipesSincePower++;
+        if (pipesSincePower >= POWER_EVERY) {
+          pipesSincePower = 0;
+          grantPower();
         }
       }
     }
 
     // 碰撞(冲刺时无视障碍;被摧毁的管道不参与碰撞)
-    if (!died && dashTime <= 0 && invincibleTime <= 0 && !prePowerInvincible) {
+    if (!died && dashTime <= 0 && invincibleTime <= 0) {
       for (const p of pipes) {
         if (p.destroyed) continue;
         const topH = p.center - p.gap / 2;
@@ -619,24 +465,9 @@
       }
     }
 
-    // RL 学习结算
-    if (autoMode) {
-      RL.step(died);
-    }
-
     // 处理死亡
     if (died) {
-      if (autoMode && rlMode === 'train') {
-        // 训练:记录本局最高分,自动重开新局继续训练
-        RL.bestScore = Math.max(RL.bestScore, score);
-        score = 0;
-        resetBird();
-        spawnPipes();
-        RL.onEpisodeStart();
-      } else {
-        // 测试或手动:显示结束界面
-        gameOver();
-      }
+      gameOver();
     }
   }
 
@@ -660,7 +491,6 @@
     drawScore();
     drawPowerHud();
     drawToast();
-    drawAuto();
   }
 
   function drawClouds() {
@@ -790,7 +620,7 @@
     const y = bird.y;
     const s = currentBirdR() / BIRD_R;
     const dashing = state === 'playing' && dashTime > 0;
-    const invincible = state === 'playing' && (invincibleTime > 0 || prePowerInvincible);
+    const invincible = state === 'playing' && invincibleTime > 0;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(bird.rot);
@@ -868,7 +698,7 @@
     if (shrinkTime > 0) items.push({ text: '变小 ' + (shrinkTime / 60).toFixed(1) + 's', color: '#7fd2ff' });
     if (dashTime > 0) items.push({ text: '冲刺 ' + (dashTime / 60).toFixed(1) + 's', color: '#ffd93b' });
     if (bombCount > 0) items.push({ text: '炸弹 x' + bombCount + ' (B 释放)', color: '#ff9f43' });
-    if (invincibleTime > 0 || prePowerInvincible) items.push({ text: '无敌', color: '#ffe08a' });
+    if (invincibleTime > 0) items.push({ text: '无敌', color: '#ffe08a' });
     if (items.length === 0) return;
 
     ctx.font = '700 14px system-ui, sans-serif';
@@ -903,15 +733,6 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawAuto() {
-    if (state !== 'playing' || !autoMode) return;
-    ctx.font = '700 15px system-ui, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(255, 217, 59, 0.95)';
-    ctx.fillText(rlMode === 'test' ? 'AI 测试中' : 'AI 训练中', W - 12, 20);
-  }
-
   // ---- 主循环 ----
   function loop(now) {
     rafId = requestAnimationFrame(loop);
@@ -923,13 +744,7 @@
     updateEffects(t);
 
     if (state === 'playing') {
-      if (autoMode && rlMode === 'train') {
-        // 训练:每渲染帧跑多个物理步,加速学习
-        for (let i = 0; i < RL_SPEED; i++) update(1);
-      } else {
-        // 测试/手动:正常速度
-        update(t);
-      }
+      update(t);
     } else if (state === 'over') {
       // 死亡后小鸟继续坠落到地面
       bird.vy = Math.min(bird.vy + GRAVITY * t, MAX_FALL);
@@ -942,7 +757,6 @@
     }
 
     render();
-    if (autoMode && state === 'playing') updateRLHud();
   }
 
   // ---- 输入 ----
@@ -951,10 +765,6 @@
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         action();
-      } else if (e.code === 'KeyA') {
-        toggleTrain();
-      } else if (e.code === 'KeyT') {
-        toggleTest();
       } else if (e.code === 'KeyB') {
         e.preventDefault();
         triggerBomb();
@@ -981,14 +791,6 @@
       e.stopPropagation();
       goHome();
     });
-    btnAuto.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleTrain();
-    });
-    btnTest.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleTest();
-    });
     document.getElementById('btn-bomb').addEventListener('click', (e) => {
       e.stopPropagation();
       triggerBomb();
@@ -1013,7 +815,6 @@
     overlayStart.classList.remove('hidden');
     overlayOver.classList.add('hidden');
     bindInput();
-    updateAutoBtn();
     lastTime = 0;
     rafId = requestAnimationFrame(loop);
   }

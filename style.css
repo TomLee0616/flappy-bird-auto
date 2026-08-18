@@ -144,30 +144,28 @@ canvas {
   background: #4a4f5e;
 }
 
-.btn.active {
-  background: #ff9f43;
-  color: #4a2c00;
-}
-
-.btn.active:hover {
-  background: #e88f35;
-}
-
 /* 炸弹按钮 */
+@keyframes bomb-glow {
+  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
+  50% { box-shadow: 0 6px 28px rgba(255, 120, 60, 0.95); }
+}
+
 .bomb-btn {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
-  width: 56px;
-  height: 56px;
+  bottom: 26px;
+  right: 22px;
+  width: 68px;
+  height: 68px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 159, 67, 0.92);
-  font-size: 26px;
+  background: rgba(255, 159, 67, 0.95);
+  font-size: 34px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
   z-index: 4;
+  touch-action: manipulation;
   transition: transform 0.1s ease, background 0.15s ease;
+  animation: bomb-glow 1.2s ease-in-out infinite;
 }
 
 .bomb-btn:hover {
@@ -189,47 +187,13 @@ canvas {
 
 .bomb-btn b {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -6px;
+  right: -6px;
   background: #ff6b6b;
   color: #fff;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1;
-  border-radius: 10px;
-  padding: 3px 7px;
+  border-radius: 11px;
+  padding: 4px 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-/* 强化学习训练面板 */
-.rl-hud {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-  background: rgba(20, 22, 34, 0.78);
-  border-radius: 8px;
-  font-size: 12px;
-  color: #cbd0e0;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.rl-hud.hidden {
-  display: none;
-}
-
-.rl-hud-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  line-height: 1.4;
-}
-
-.rl-hud-row b {
-  color: #ffd93b;
-  font-weight: 700;
 }
