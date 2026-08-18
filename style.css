@@ -129,6 +129,7 @@ canvas {
 
 .btn-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: center;
   margin-top: 18px;
@@ -150,4 +151,85 @@ canvas {
 
 .btn.active:hover {
   background: #e88f35;
+}
+
+/* 炸弹按钮 */
+.bomb-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 159, 67, 0.92);
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  z-index: 4;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.bomb-btn:hover {
+  background: rgba(255, 143, 53, 0.95);
+}
+
+.bomb-btn:active {
+  transform: scale(0.92);
+}
+
+.bomb-btn.hidden {
+  display: none;
+}
+
+.bomb-btn span {
+  display: block;
+  line-height: 1;
+}
+
+.bomb-btn b {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ff6b6b;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 10px;
+  padding: 3px 7px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* 强化学习训练面板 */
+.rl-hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: rgba(20, 22, 34, 0.78);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #cbd0e0;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.rl-hud.hidden {
+  display: none;
+}
+
+.rl-hud-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  line-height: 1.4;
+}
+
+.rl-hud-row b {
+  color: #ffd93b;
+  font-weight: 700;
 }
